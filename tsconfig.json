@@ -6,7 +6,8 @@
 
     /* Node ESM */
     "module": "ES2022",
-    "moduleResolution": "bundler",
+    "moduleResolution": "node",
+    "ignoreDeprecations": "6.0",
 
     /* Project structure */
     "rootDir": "src",

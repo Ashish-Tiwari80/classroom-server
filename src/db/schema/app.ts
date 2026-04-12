@@ -1,4 +1,5 @@
 import {
+    check,
     integer,
     jsonb,
     pgEnum,
@@ -10,7 +11,7 @@ import {
     index,
     primaryKey
 } from "drizzle-orm/pg-core";
-import {relations} from "drizzle-orm";
+import {relations, sql} from "drizzle-orm";
 import {user} from "./auth.js";
 
 export const classStatusEnum = pgEnum('class_status', ['active', 'inactive', 'archived']);
@@ -53,6 +54,7 @@ export const classes = pgTable('classes', {
 }, (table) => [
     index('classes_subject_id_idx').on(table.subjectId),
     index('classes_teacher_id_idx').on(table.teacherId),
+    check('classes_capacity_check', sql`capacity > 0`),
 ]);
 
 export const enrollments = pgTable('enrollments', {

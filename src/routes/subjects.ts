@@ -1,4 +1,4 @@
-import { and, desc, eq, getTableColumns, ilike, or, sql } from "drizzle-orm";
+import { and, count, desc, eq, getTableColumns, ilike, or } from "drizzle-orm";
 import express from "express";
 import { departments, subjects } from "../db/schema";
 import { db } from "../db";
@@ -36,7 +36,7 @@ router.get("/", async (req, res) => {
 
     // Count query MUST include the join
     const countResult = await db
-      .select({ count: sql<number>`count(*)` })
+      .select({ count: count() })
       .from(subjects)
       .leftJoin(departments, eq(subjects.departmentId, departments.id))
       .where(whereClause);

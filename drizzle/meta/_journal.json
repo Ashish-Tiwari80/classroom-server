@@ -8,6 +8,13 @@
       "when": 1775723316845,
       "tag": "0000_jazzy_mandroid",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1776002582267,
+      "tag": "0001_clammy_oracle",
+      "breakpoints": true
     }
   ]
 }

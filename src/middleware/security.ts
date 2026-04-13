@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { ArcjetNodeRequest, slidingWindow } from "@arcjet/node";
-import aj from "../config/arcjet.js";
+import aj from "../config/arcjet";
 
 const securityMiddleware = async (
   req: Request,

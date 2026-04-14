@@ -18,7 +18,6 @@ router.get("/", async (req, res) => {
 
         const filterConditions = [];
 
-        // If search query exists, filter by user name OR user email
         if (search) {
             filterConditions.push(
                 or(

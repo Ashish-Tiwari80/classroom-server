@@ -26,7 +26,7 @@ const securityMiddleware = async (
         message = "User request limit exceeded (10 per minute). Please wait.";
         break;
       default:
-        limit = 50;
+        limit = 5;
         message =
           "Guest request limit exceeded (5 per minute). Please wait or sign up.";
         break;

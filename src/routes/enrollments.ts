@@ -49,20 +49,22 @@ const getEnrollmentDetails = async (studentId: string, classId: number) => {
 router.get("/student/:studentId", async (req, res) => {
   try {
     const { studentId } = req.params;
-    const {search} = req.query;
+    const { search } = req.query;
 
-    if (!studentId) return res.status(400).json({ error: "studentId is required" });
+    if (!studentId)
+      return res.status(400).json({ error: "studentId is required" });
 
     const filterConditions = [eq(enrollments.studentId, studentId)];
 
     if (search) {
-      filterConditions.push(
-        ilike(classes.name, `%${search}%`)
-      );
+      filterConditions.push(ilike(classes.name, `%${search}%`));
     }
 
     const results = await db
-      .select({ studentId: enrollments.studentId, classId: enrollments.classId })
+      .select({
+        studentId: enrollments.studentId,
+        classId: enrollments.classId,
+      })
       .from(enrollments)
       .leftJoin(classes, eq(enrollments.classId, classes.id))
       .where(and(...filterConditions));
@@ -81,7 +83,9 @@ router.get("/:studentId/:classId", async (req, res) => {
     const classId = parseInt(req.params.classId, 10);
 
     if (!studentId || isNaN(classId)) {
-      return res.status(400).json({ error: "Valid studentId and classId are required" });
+      return res
+        .status(400)
+        .json({ error: "Valid studentId and classId are required" });
     }
 
     const enrollment = await getEnrollmentDetails(studentId, classId);
@@ -102,37 +106,61 @@ router.post("/", async (req, res) => {
   try {
     const { classId, studentId } = req.body;
 
-    if (!classId || !studentId || typeof studentId !== "string" || !Number.isInteger(classId)) {
-      return res.status(400).json({ error: "classId (integer) and studentId (string) are required" });
+    if (
+      !classId ||
+      !studentId ||
+      typeof studentId !== "string" ||
+      !Number.isInteger(classId)
+    ) {
+      return res.status(400).json({
+        error: "classId (integer) and studentId (string) are required",
+      });
     }
 
-    const [classRecord] = await db.select().from(classes).where(eq(classes.id, classId));
+    const [classRecord] = await db
+      .select()
+      .from(classes)
+      .where(eq(classes.id, classId));
     if (!classRecord) return res.status(404).json({ error: "Class not found" });
 
-    const [{ enrolledCount }] = await db
+    const [row] = await db
       .select({ enrolledCount: count() })
       .from(enrollments)
       .where(eq(enrollments.classId, classId));
 
+    const enrolledCount = row?.enrolledCount ?? 0;
+
     if (enrolledCount >= classRecord.capacity)
       return res.status(409).json({ error: "Class is at full capacity" });
 
-    const [student] = await db.select().from(user).where(eq(user.id, studentId));
+    const [student] = await db
+      .select()
+      .from(user)
+      .where(eq(user.id, studentId));
     if (!student) return res.status(404).json({ error: "Student not found" });
 
     const [existingEnrollment] = await db
       .select({ studentId: enrollments.studentId })
       .from(enrollments)
-      .where(and(eq(enrollments.classId, classId), eq(enrollments.studentId, studentId)));
+      .where(
+        and(
+          eq(enrollments.classId, classId),
+          eq(enrollments.studentId, studentId),
+        ),
+      );
 
     if (existingEnrollment)
-      return res.status(409).json({ error: "Student already enrolled in this class" });
+      return res
+        .status(409)
+        .json({ error: "Student already enrolled in this class" });
 
     await db.insert(enrollments).values({ classId, studentId });
 
     const enrollment = await getEnrollmentDetails(studentId, classId);
     if (!enrollment)
-      return res.status(500).json({ error: "Failed to retrieve enrollment after creation" });
+      return res
+        .status(500)
+        .json({ error: "Failed to retrieve enrollment after creation" });
 
     res.status(201).json({ data: enrollment });
   } catch (error) {
@@ -148,7 +176,9 @@ router.delete("/:studentId/:classId", async (req, res) => {
     const classId = parseInt(req.params.classId, 10);
 
     if (!studentId || isNaN(classId)) {
-      return res.status(400).json({ error: "Valid studentId and classId are required" });
+      return res
+        .status(400)
+        .json({ error: "Valid studentId and classId are required" });
     }
 
     const existing = await getEnrollmentDetails(studentId, classId);
@@ -169,6 +199,60 @@ router.delete("/:studentId/:classId", async (req, res) => {
   } catch (error) {
     console.error("DELETE /enrollments/:studentId/:classId error:", error);
     res.status(500).json({ error: "Failed to delete enrollment" });
+  }
+});
+
+// Join class by invite code
+router.post("/join", async (req, res) => {
+  try {
+    const { inviteCode, studentId } = req.body;
+
+    if (!inviteCode || !studentId) {
+      return res
+        .status(400)
+        .json({ error: "inviteCode and studentId are required" });
+    }
+
+    const [classRecord] = await db
+      .select()
+      .from(classes)
+      .where(eq(classes.inviteCode, inviteCode));
+
+    if (!classRecord) return res.status(404).json({ error: "Class not found" });
+
+    const [student] = await db
+      .select()
+      .from(user)
+      .where(eq(user.id, studentId));
+
+    if (!student) return res.status(404).json({ error: "Student not found" });
+
+    const [existingEnrollment] = await db
+      .select({ studentId: enrollments.studentId })
+      .from(enrollments)
+      .where(
+        and(
+          eq(enrollments.classId, classRecord.id),
+          eq(enrollments.studentId, studentId),
+        ),
+      );
+
+    if (existingEnrollment)
+      return res
+        .status(409)
+        .json({ error: "Student already enrolled in class" });
+
+    await db.insert(enrollments).values({ classId: classRecord.id, studentId });
+
+    const enrollment = await getEnrollmentDetails(studentId, classRecord.id);
+
+    if (!enrollment)
+      return res.status(500).json({ error: "Failed to join class" });
+
+    res.status(201).json({ data: enrollment });
+  } catch (error) {
+    console.error("POST /enrollments/join error:", error);
+    res.status(500).json({ error: "Failed to join class" });
   }
 });
 

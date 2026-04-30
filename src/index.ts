@@ -36,7 +36,7 @@ app.use('/api/classes', classesRouter);
 app.use('/api/enrollments', enrollmentsRouter);
 
 app.get('/', (req, res) => {
-  res.send('Hello, World!');
+  res.send('Backend server is running!');
 });
 
 app.listen(port, () => {

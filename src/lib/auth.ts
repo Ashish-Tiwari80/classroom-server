@@ -40,6 +40,7 @@ export const auth = betterAuth({
     },
   },
   advanced: {
+    // session_token
     cookiePrefix: "classroom",
     cookies: {
       session_token: {
@@ -47,6 +48,19 @@ export const auth = betterAuth({
           sameSite: "none", // critical for cross-origin
           secure: true, // required with sameSite: none
         },
+      },
+    },
+    // crossSubdomainCookies
+    state: {               
+      attributes: {
+        sameSite: "none",    
+        secure: true,
+      },
+    },
+    pkce_code_verifier: {
+      attributes: {
+        sameSite: "none",
+        secure: true,
       },
     },
   },

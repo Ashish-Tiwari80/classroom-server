@@ -23,7 +23,6 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   credentials: true,
 }));
-app.options('*', cors()); // preflight handler
 
 app.all('/api/auth/*splat', toNodeHandler(auth));
 

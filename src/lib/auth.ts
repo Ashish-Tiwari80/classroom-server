@@ -40,27 +40,17 @@ export const auth = betterAuth({
     },
   },
   advanced: {
-    // session_token
+    useSecureCookies: true,
     cookiePrefix: "classroom",
     cookies: {
       session_token: {
-        attributes: {
-          sameSite: "none", // critical for cross-origin
-          secure: true, // required with sameSite: none
-        },
+        attributes: { sameSite: "none", secure: true },
       },
-    },
-    // crossSubdomainCookies
-    state: {               
-      attributes: {
-        sameSite: "none",    
-        secure: true,
+      state: {
+        attributes: { sameSite: "none", secure: true },
       },
-    },
-    pkce_code_verifier: {
-      attributes: {
-        sameSite: "none",
-        secure: true,
+      pkce_code_verifier: {
+        attributes: { sameSite: "none", secure: true },
       },
     },
   },

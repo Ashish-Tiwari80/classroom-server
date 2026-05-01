@@ -21,6 +21,8 @@ if (!process.env.FRONTEND_URL) throw new Error('FRONTEND_URL is not set in .env 
 app.use(cors({
   origin: process.env.FRONTEND_URL,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Set-Cookie'],
   credentials: true,
 }));
 

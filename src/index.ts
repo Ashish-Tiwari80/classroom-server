@@ -19,9 +19,10 @@ if (!process.env.FRONTEND_URL) throw new Error('FRONTEND_URL is not set in .env 
 
 app.use(cors({
   origin: process.env.FRONTEND_URL,
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   credentials: true,
 }));
+app.options('*', cors()); // preflight handler
 
 app.all('/api/auth/*splat', toNodeHandler(auth));
 

@@ -9,7 +9,8 @@ import {
     unique,
     varchar,
     index,
-    primaryKey
+    primaryKey,
+    serial
 } from "drizzle-orm/pg-core";
 import {relations, sql} from "drizzle-orm";
 import {user} from "./auth.js";
@@ -67,6 +68,71 @@ export const enrollments = pgTable('enrollments', {
     index('enrollments_class_id_idx').on(table.classId),
 ]);
 
+export const quizDifficultyEnum = pgEnum("quiz_difficulty", [
+  "easy",
+  "medium",
+  "hard",
+]);
+
+export const quizzes = pgTable("quizzes", {
+  id:           serial("id").primaryKey(),
+  subjectId:    integer("subject_id")
+                  .notNull()
+                  .references(() => subjects.id, { onDelete: "cascade" }),
+  topic:        text("topic").notNull(),
+  numQuestions: integer("num_questions").notNull().default(5),
+  difficulty:   quizDifficultyEnum("difficulty").notNull().default("medium"),
+
+  questions: jsonb("questions")
+    .$type<
+      Array<{
+        question: string;
+        options: string[];
+        correctAnswer: string;
+        explanation?: string;
+      }>
+    >()
+    .notNull()
+    .default([]),
+
+  createdAt: timestamp("created_at", { withTimezone: true })
+               .notNull()
+               .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+               .notNull()
+               .defaultNow()
+               .$onUpdate(() => new Date()),
+});
+
+export const quizAttempts = pgTable("quiz_attempts", {
+  id:             serial("id").primaryKey(),
+  quizId:         integer("quiz_id")
+                    .notNull()
+                    .references(() => quizzes.id, { onDelete: "cascade" }),
+  userId:         text("user_id")
+                    .notNull()
+                    .references(() => user.id, { onDelete: "cascade" }),
+
+  answers: jsonb("answers")
+    .$type<Record<number, string>>()
+    .notNull()
+    .default({}),
+
+  score:          integer("score").notNull(),          // 0-100 %
+  correctCount:   integer("correct_count").notNull(),
+  totalQuestions: integer("total_questions").notNull(),
+
+  analysis: jsonb("analysis").$type<{
+    overallFeedback: string;
+    scoreLabel: string;
+    questionFeedback: Record<number, string>;
+  } | null>(),
+
+  createdAt: timestamp("created_at", { withTimezone: true })
+               .notNull()
+               .defaultNow(),
+});
+
 export const departmentRelations = relations(departments, ({ many }) => ({ subjects: many(subjects) }));
 
 export const subjectsRelations = relations(subjects, ({ one, many }) => ({
@@ -100,6 +166,25 @@ export const enrollmentsRelations = relations(enrollments, ({ one }) => ({
     }),
 }));
 
+export const quizzesRelations = relations(quizzes, ({ one, many }) => ({
+  subject: one(subjects, {
+    fields: [quizzes.subjectId],
+    references: [subjects.id],
+  }),
+  attempts: many(quizAttempts),
+}));
+
+export const quizAttemptsRelations = relations(quizAttempts, ({ one }) => ({
+  quiz: one(quizzes, {
+    fields: [quizAttempts.quizId],
+    references: [quizzes.id],
+  }),
+  user: one(user, {
+    fields: [quizAttempts.userId],
+    references: [user.id],
+  }),
+}));
+
 export type Department = typeof departments.$inferSelect;
 export type NewDepartment = typeof departments.$inferInsert;
 
@@ -111,3 +196,8 @@ export type NewClass = typeof classes.$inferInsert;
 
 export type Enrollment = typeof enrollments.$inferSelect;
 export type NewEnrollment = typeof enrollments.$inferInsert;
+
+export type Quiz         = typeof quizzes.$inferSelect;
+export type NewQuiz      = typeof quizzes.$inferInsert;
+export type QuizAttempt  = typeof quizAttempts.$inferSelect;
+export type NewQuizAttempt = typeof quizAttempts.$inferInsert;

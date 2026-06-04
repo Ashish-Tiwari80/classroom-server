@@ -9,6 +9,7 @@ import usersRouter from './routes/users.js';
 import departmentsRouter from './routes/departments.js';
 import classesRouter from './routes/classes.js';
 import enrollmentsRouter from './routes/enrollments.js'
+import quizzesRouter from './routes/quizzes.js';
 import securityMiddleware from './middleware/security.js';
 import { toNodeHandler } from 'better-auth/node';
 import { auth } from './lib/auth.js';
@@ -37,6 +38,7 @@ app.use('/api/users', usersRouter);
 app.use('/api/departments', departmentsRouter);
 app.use('/api/classes', classesRouter);
 app.use('/api/enrollments', enrollmentsRouter);
+app.use('/api/quizzes', quizzesRouter);
 
 app.get('/', (req, res) => {
   res.send('Backend server is running!');

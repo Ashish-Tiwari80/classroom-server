@@ -6,8 +6,8 @@ import { db } from "../db/index.js";
 const router = express.Router();
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY!;
-const GEMINI_MODEL   = "gemini-3.5-flash";
-const GEMINI_URL     = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+const GEMINI_MODEL = "gemini-3.5-flash";
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
 
 async function callGemini(prompt: string): Promise<string> {
   const res = await fetch(GEMINI_URL, {
@@ -38,17 +38,30 @@ async function callGemini(prompt: string): Promise<string> {
 
 function extractJSON<T>(raw: string): T {
   // Strip markdown code fences if present
-  const cleaned = raw.replace(/```json\s*/gi, "").replace(/```/g, "").trim();
+  const cleaned = raw
+    .replace(/```json\s*/gi, "")
+    .replace(/```/g, "")
+    .trim();
   return JSON.parse(cleaned) as T;
 }
 
 router.get("/", async (req, res) => {
   try {
-    const { search, difficulty, subjectId, page = 1, limit = 10, userId } = req.query;
+    const {
+      search,
+      difficulty,
+      subjectId,
+      page = 1,
+      limit = 10,
+      userId,
+    } = req.query;
 
-    const currentPage  = Math.max(1, parseInt(page as string, 10) || 1);
-    const limitPerPage = Math.min(Math.max(1, parseInt(String(limit), 10) || 10), 100);
-    const offset       = (currentPage - 1) * limitPerPage;
+    const currentPage = Math.max(1, parseInt(page as string, 10) || 1);
+    const limitPerPage = Math.min(
+      Math.max(1, parseInt(String(limit), 10) || 10),
+      100,
+    );
+    const offset = (currentPage - 1) * limitPerPage;
 
     const filterConditions = [];
 
@@ -88,17 +101,17 @@ router.get("/", async (req, res) => {
       .limit(limitPerPage)
       .offset(offset);
 
-    let annotated: (typeof quizzesList[number] & {
+    let annotated: ((typeof quizzesList)[number] & {
       userAttempt: { id: number; score: number } | null;
     })[] = quizzesList.map((q) => ({ ...q, userAttempt: null }));
- 
+
     if (userId && quizzesList.length > 0) {
       const quizIds = quizzesList.map((q) => q.id);
       const attempts = await db
         .select({
-          id:     quizAttempts.id,
+          id: quizAttempts.id,
           quizId: quizAttempts.quizId,
-          score:  quizAttempts.score,
+          score: quizAttempts.score,
         })
         .from(quizAttempts)
         .where(
@@ -110,7 +123,7 @@ router.get("/", async (req, res) => {
             )}]::int[])`,
           ),
         );
- 
+
       const attemptMap = new Map(attempts.map((a) => [a.quizId, a]));
       annotated = quizzesList.map((q) => ({
         ...q,
@@ -128,7 +141,6 @@ router.get("/", async (req, res) => {
       },
     });
   } catch (e) {
-    console.error(`GET /quizzes error: ${e}`);
     res.status(500).json({ error: "Failed to fetch quizzes" });
   }
 });
@@ -138,7 +150,11 @@ router.post("/", async (req, res) => {
     const { subjectId, topic, numQuestions, difficulty } = req.body;
 
     if (!subjectId || !topic || !numQuestions || !difficulty) {
-      return res.status(400).json({ error: "subjectId, topic, numQuestions and difficulty are required" });
+      return res
+        .status(400)
+        .json({
+          error: "subjectId, topic, numQuestions and difficulty are required",
+        });
     }
 
     const [subject] = await db
@@ -211,7 +227,7 @@ Rules:
 router.get("/:id", async (req, res) => {
   try {
     const quizId = Number(req.params.id);
-    const {userId} = req.query;
+    const { userId } = req.query;
 
     if (!Number.isFinite(quizId)) {
       return res.status(400).json({ error: "Invalid quiz id" });
@@ -268,24 +284,20 @@ router.get("/:id", async (req, res) => {
 router.post("/:id/analyze", async (req, res) => {
   try {
     const quizId = Number(req.params.id);
-    const { answers, score, correct, total, userId } = req.body;
-
-    console.log(`[analyze] quizId=${quizId} userId=${userId} score=${score} correct=${correct}/${total}`);
+    const { answers, userId } = req.body;
 
     if (!Number.isFinite(quizId)) {
       return res.status(400).json({ error: "Invalid quiz id" });
     }
     if (!userId) {
-      return res.status(400).json({ error: "userId is required to submit an attempt" });
-    }
-    if (score === undefined || correct === undefined || total === undefined) {
-      return res.status(400).json({ error: "score, correct, and total are required" });
+      return res
+        .status(400)
+        .json({ error: "userId is required to submit an attempt" });
     }
     if (!answers || typeof answers !== "object") {
       return res.status(400).json({ error: "answers object is required" });
     }
 
-    // Block duplicate attempts
     const [existingAttempt] = await db
       .select({ id: quizAttempts.id, analysis: quizAttempts.analysis })
       .from(quizAttempts)
@@ -296,7 +308,7 @@ router.post("/:id/analyze", async (req, res) => {
         ),
       )
       .limit(1);
- 
+
     if (existingAttempt) {
       return res.status(409).json({
         error: "already_attempted",
@@ -320,7 +332,6 @@ router.post("/:id/analyze", async (req, res) => {
       return res.status(404).json({ error: "Quiz not found" });
     }
 
-    // Build per-question context for Gemini
     type QuizQuestion = {
       question: string;
       options: string[];
@@ -329,6 +340,12 @@ router.post("/:id/analyze", async (req, res) => {
     };
 
     const questions = quiz.questions as QuizQuestion[];
+    const total = questions.length;
+    const correct = questions.reduce((sum, q, i) => {
+      return sum + ((answers[i] ?? null) === q.correctAnswer ? 1 : 0);
+    }, 0);
+    const score = total === 0 ? 0 : Math.round((correct / total) * 100);
+
     const questionSummary = questions
       .map((q, i) => {
         const selected = answers[i] ?? "(not answered)";
@@ -385,7 +402,6 @@ Rules:
         analysis,
       })
       .returning({ id: quizAttempts.id });
-      console.log(`[analyze] saved attempt id=${savedAttempt?.id} for userId=${userId} quizId=${quizId}`);
 
     res.status(200).json({ ...analysis, attemptId: savedAttempt?.id });
   } catch (e) {
@@ -403,9 +419,9 @@ router.get("/:id/attempts", async (req, res) => {
       return res.status(400).json({ error: "Invalid quiz id" });
     }
 
-    const currentPage  = Math.max(1, +page);
+    const currentPage = Math.max(1, +page);
     const limitPerPage = Math.max(1, +limit);
-    const offset       = (currentPage - 1) * limitPerPage;
+    const offset = (currentPage - 1) * limitPerPage;
 
     const countResult = await db
       .select({ count: count() })

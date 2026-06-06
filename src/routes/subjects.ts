@@ -13,6 +13,8 @@ import {
   classes,
   departments,
   enrollments,
+  quizAttempts,
+  quizzes,
   subjects,
   user,
 } from "../db/schema/index.js";
@@ -289,6 +291,76 @@ router.get("/:id/users", async (req, res) => {
   } catch (error) {
     console.error("GET /subjects/:id/users error:", error);
     res.status(500).json({ error: "Failed to fetch subject users" });
+  }
+});
+
+// Returns all quiz attempts across all quizzes for this subject
+router.get("/:id/quiz-attempts", async (req, res) => {
+  try {
+    const subjectId = Number(req.params.id);
+    const { page = 1, limit = 10 } = req.query;
+
+    if (!Number.isFinite(subjectId)) {
+      return res.status(400).json({ error: "Invalid subject id" });
+    }
+
+    const currentPage  = Math.max(1, +page);
+    const limitPerPage = Math.max(1, +limit);
+    const offset       = (currentPage - 1) * limitPerPage;
+
+    // Count total attempts for quizzes belonging to this subject
+    const [countRow = { total: 0 }] = await db
+      .select({ total: count() })
+      .from(quizAttempts)
+      .innerJoin(quizzes, eq(quizAttempts.quizId, quizzes.id))
+      .where(eq(quizzes.subjectId, subjectId));
+    const totalCount = countRow.total;
+
+    // Fetch paginated attempts joined with quiz + student user
+    const attemptsList = await db
+      .select({
+        // attempt fields
+        id:             quizAttempts.id,
+        quizId:         quizAttempts.quizId,
+        userId:         quizAttempts.userId,
+        score:          quizAttempts.score,
+        correctCount:   quizAttempts.correctCount,
+        totalQuestions: quizAttempts.totalQuestions,
+        analysis:       quizAttempts.analysis,
+        createdAt:      quizAttempts.createdAt,
+        // quiz fields
+        quiz: {
+          topic:      quizzes.topic,
+          difficulty: quizzes.difficulty,
+        },
+        // student fields
+        user: {
+          name:  user.name,
+          email: user.email,
+          image: user.image,
+        },
+      })
+      .from(quizAttempts)
+      .innerJoin(quizzes, eq(quizAttempts.quizId, quizzes.id))
+      .leftJoin(user, eq(quizAttempts.userId, user.id))
+      .where(eq(quizzes.subjectId, subjectId))
+      .orderBy(desc(quizAttempts.createdAt))
+      .limit(limitPerPage)
+      .offset(offset);
+
+    res.status(200).json({
+      data: attemptsList,
+      total: totalCount,
+      pagination: {
+        page: currentPage,
+        limit: limitPerPage,
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / limitPerPage),
+      },
+    });
+  } catch (error) {
+    console.error("GET /subjects/:id/quiz-attempts error:", error);
+    res.status(500).json({ error: "Failed to fetch quiz attempts" });
   }
 });
 

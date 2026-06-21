@@ -26,6 +26,7 @@ This project is split into two repositories:
 - 📚 Subject management
 - 🏫 Class management
 - 📋 Enrollment management
+- ❇️ Quizzes management
 - 🖼️ Cloudinary image upload for user avatars
 - 🌙 Dark/Light theme support
 - 📱 Responsive UI with shadcn/ui components
@@ -52,12 +53,12 @@ This project is split into two repositories:
 - **Better Auth** — authentication & session management
 - **Drizzle ORM** — database ORM
 - **PostgreSQL** — database
-- **Arcjet** — security middleware
 - **CORS** — cross-origin configuration
+- **Gemini API** — Quiz generation and analysis
 
 ### Deployment
 - **Frontend** → Vercel
-- **Backend** → Railway
+- **Backend** → Render
 
 ---
 
@@ -166,7 +167,7 @@ The frontend will run on `http://localhost:5173`.
    - `https://your-frontend.vercel.app` (prod)
 4. Add to **Authorized redirect URIs**:
    - `http://localhost:8000/api/auth/callback/google` (dev)
-   - `https://your-backend.railway.app/api/auth/callback/google` (prod)
+   - `https://your-backend.render.app/api/auth/callback/google` (prod)
 
 ### GitHub
 
@@ -175,21 +176,21 @@ The frontend will run on `http://localhost:5173`.
 3. Set **Homepage URL** to your frontend URL
 4. Set **Authorization callback URL** to:
    - `http://localhost:8000/api/auth/callback/github` (dev)
-   - `https://your-backend.railway.app/api/auth/callback/github` (prod)
+   - `https://your-backend.render.app/api/auth/callback/github` (prod)
 
 ---
 
 ## 🌐 Production Deployment
 
-### Backend (Railway)
+### Backend (Render)
 
-Set these environment variables in Railway:
+Set these environment variables in Render:
 
 ```env
 FRONTEND_URL=https://your-frontend.vercel.app
 DATABASE_URL=your_production_postgres_url
 BETTER_AUTH_SECRET=your_long_random_secret
-BETTER_AUTH_URL=https://your-backend.railway.app
+BETTER_AUTH_URL=https://your-backend.render.app
 GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
 GITHUB_CLIENT_ID=...
@@ -203,7 +204,7 @@ GITHUB_CLIENT_SECRET=...
 Set this environment variable in Vercel:
 
 ```env
-VITE_BACKEND_BASE_URL=https://your-backend.railway.app
+VITE_BACKEND_BASE_URL=https://your-backend.render.app
 ```
 
 > ⚠️ Always test OAuth from the **production URL** (`your-frontend.vercel.app`), not Vercel preview URLs, as OAuth providers require exact redirect URI matches.

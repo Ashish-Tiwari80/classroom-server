@@ -16,7 +16,6 @@ const router = express.Router();
 router.get("/", async (req, res) => {
   try {
     const { search, role, page = 1, limit = 10 } = req.query;
-    const effectiveRole = req.user?.role === "admin" ? role : "teacher";
 
     const currentPage = Math.max(1, parseInt(String(page), 10) || 1);
     const limitPerPage = Math.min(
@@ -35,8 +34,8 @@ router.get("/", async (req, res) => {
     }
 
     // If role filter exists, match exact role
-    if (effectiveRole) {
-      filterConditions.push(eq(user.role, effectiveRole as any));
+    if (role) {
+      filterConditions.push(eq(user.role, role as any));
     }
 
     // Combine all filters using AND if any exist

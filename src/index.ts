@@ -14,6 +14,7 @@ import securityMiddleware from './middleware/security.js';
 import { toNodeHandler } from 'better-auth/node';
 import { auth } from './lib/auth.js';
 import { sessionMiddleware } from './middleware/session.js';
+import { requireAuth } from './middleware/auth.js';
 
 const app = express();
 const port = 8000;
@@ -35,12 +36,12 @@ app.use(express.json());
 app.use(sessionMiddleware);
 app.use(securityMiddleware);
 
-app.use('/api/subjects', subjectsRouter);
-app.use('/api/users', usersRouter);
-app.use('/api/departments', departmentsRouter);
-app.use('/api/classes', classesRouter);
-app.use('/api/enrollments', enrollmentsRouter);
-app.use('/api/quizzes', quizzesRouter);
+app.use('/api/subjects', requireAuth, subjectsRouter);
+app.use('/api/users', requireAuth, usersRouter);
+app.use('/api/departments', requireAuth, departmentsRouter);
+app.use('/api/classes', requireAuth, classesRouter);
+app.use('/api/enrollments', requireAuth, enrollmentsRouter);
+app.use('/api/quizzes', requireAuth, quizzesRouter);
 
 app.get('/', (req, res) => {
   res.send('Backend server is running!');

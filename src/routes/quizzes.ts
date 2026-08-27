@@ -2,6 +2,7 @@ import { and, count, desc, eq, getTableColumns, ilike, sql } from "drizzle-orm";
 import express from "express";
 import { quizzes, quizAttempts, subjects } from "../db/schema/index.js";
 import { db } from "../db/index.js";
+import { requireRole } from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -145,7 +146,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.post("/", async (req, res) => {
+router.post("/", requireRole("admin", "teacher"), async (req, res) => {
   try {
     const { subjectId, topic, numQuestions, difficulty } = req.body;
 

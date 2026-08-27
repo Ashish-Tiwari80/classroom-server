@@ -9,6 +9,7 @@ import {
   subjects,
   user,
 } from "../db/schema/index.js";
+import { requireRole } from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -70,7 +71,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.post("/", async (req, res) => {
+router.post("/", requireRole("admin"), async (req, res) => {
   try {
     const { code, name, description } = req.body;
 

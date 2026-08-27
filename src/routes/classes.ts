@@ -9,6 +9,7 @@ import {
   subjects,
 } from "../db/schema/app.js";
 import { user } from "../db/schema/auth.js";
+import { requireRole } from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -122,7 +123,7 @@ router.get("/:id", async (req, res) => {
   res.status(200).json({ data: classDetails });
 });
 
-router.post("/", async (req, res) => {
+router.post("/", requireRole("admin", "teacher"), async (req, res) => {
   try {
     const [createdClass] = await db
       .insert(classes)

@@ -13,6 +13,7 @@ import quizzesRouter from './routes/quizzes.js';
 import securityMiddleware from './middleware/security.js';
 import { toNodeHandler } from 'better-auth/node';
 import { auth } from './lib/auth.js';
+import { sessionMiddleware } from './middleware/session.js';
 
 const app = express();
 const port = 8000;
@@ -31,7 +32,8 @@ app.all('/api/auth/*splat', toNodeHandler(auth));
 
 app.use(express.json());
 
-// app.use(securityMiddleware);
+app.use(sessionMiddleware);
+app.use(securityMiddleware);
 
 app.use('/api/subjects', subjectsRouter);
 app.use('/api/users', usersRouter);
